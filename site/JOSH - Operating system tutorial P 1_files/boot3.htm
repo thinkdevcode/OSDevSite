@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0038)http://www.ansanest.com/josh/boot3.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="boot3_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Assembling our first boot-strap loader</H4>
+<P align=left>In computing re-inventing what is already available is considered 
+a waste of resource. Hence it is strongly advised that if resources are freely 
+available and are good we should not try and re-do it again. JOSH is developed 
+as an educational utility and hence you are advised to use existing solutions so 
+that you can concentrate on understanding the system.</P>
+<P align=left>We can write a boot-strap loader to load the OS from raw sectors 
+from the floppy disk into RAM and execute, but this will need us to keep an eye 
+on the OS size so that the correct number of sectors need to be loaded. This 
+also has another disadvantage that we will need perfect floppy disks without bad 
+sectors (as coding to look for bad sectors and avoiding them is too much of a 
+task at this stage). To solve all these problems we can write a boot-strap 
+loader which can understand the FAT12 structure and load the FAT file into 
+memory. We will have to concentrate on the development of the OS itself that we 
+will use readily available code to load JOSH into memory. The 'ultimate boot 
+loader' written by Matthew Vea (thanks Matthew for this wonderful bootloader. 
+The original code can be reached <A 
+href="http://www.geocities.com/mvea/bootstrap.htm">here</A>) is one such code 
+snippet that I ran across on a web search. Download <A 
+href="http://www.ansanest.com/josh/boot.asm">boot-code</A>. Most of the code is 
+concerned with reading the FAT table and getting the file to memory. We will not 
+go into the details now (we will write our own custon boot-strap loader at a 
+later date when we are happy with our OS).</P>
+<H4 align=left>Description of the Boot-strap Loader source</H4>
+<P align=left>Lines 31-41: The BIOS Boot loader doesn't bother to setup your DS, 
+ES, ES, FS, SS segments. We have to initiate them to 0x07C0 (remember 0x7C00 is 
+0x07C0, with the lower '0' understood as all segment addresses start on a 
+paragraph boundary). When we change the stack segment register, we have to stop 
+all interrupts as we won't know the current value of the SS and any interrupts 
+happening during the change can result in loss of data and even in crashing of 
+the system.</P>
+<P align=left>Lines 96-98: The two addresses (0x0100, and 0x0000) form the CS:IP 
+pair where JOSH will be loaded. We can change this to any value of our choice 
+(except ROM area of course) and when we execute JOSH, it will be this values to 
+which the CS &amp; IP should be set.</P>
+<P align=left>Lines 132-133: The two addresses pushed here into the stack should 
+be the address where the OS was loaded into memory (see the above point). The 
+order should be CS and IP values. The execution of JOSH is done using the RETF 
+instruction. The RETF instruction will jump to a block by popping the IP and CS 
+values from the stack in that order. By pushing 0x0100 and 0x0000 into the stack 
+just before the RETF instruction we are making the RETF instruction to jump to 
+0100:0000. This is one useful trick we should understand while we load 
+applications and execute them.</P>
+<P align=left>Line 235: The constant 'ImageName' has the name of the OS file. 
+The filename is in DOS 8.3 format with spaces if the first part is shorter than 
+8 characters. Note that all characters are in upper case. The 'kernel' is the 
+part of the operating system that resides in memory and provides all the system 
+functions like loading an application etc. Usually a separate application called 
+the 'shell' will be running, which will receive user commands and interpret 
+&amp; act on them. To start with JOSH will have a single file which will be both 
+the kernel and the shell. At a later time we will separate the 'shell' from the 
+'kernel'. As of now the name of the OS image will be 'KERNEL.BIN' and is entered 
+as 'KERNEL&nbsp; BIN' in the ImageName constant. change it if you choose to have 
+a different name (and make sure you name the OS executable to that name).</P>
+<P align=left>Line 241: This directive tells the NASM assembler to pad up the 
+final executable to 510 bytes long with '0'. we should remember that the 
+boot-strap loader should be exactly 512 bytes long. We are padding only upto 510 
+bytes length so that we can add the boot signature as the 511 &amp; 512 
+bytes.</P>
+<P align=left>Line 242: This line stores 0xAA55 as the last two bytes to make a 
+valid boot signature.</P>
+<H4 align=left>Assembling our boot-strap loader</H4>
+<P align=left>To assemble our boot-strap loader, we have to setup NASM 
+successfully. Download the NASMW.EXE file to a convenient directory (I use 
+"C:\NASM") as we have to work with the command prompt pretty often. NASM doesn't 
+need special setups and if you plan to operate from a different directory from 
+the NASM home directory, you should add the NASM home directory to the PATH of 
+the system. You can do this by adding ";C:\NASM" or the actual location (watch 
+out for the ';' before the path if more than one path is already set) of the 
+NASM executables to the end of the "SET PATH=******" line of the Autoexec.bat 
+file in the root directory of the C: drive. You can get more help about setting 
+the PATH from the web.</P>
+<P align=left>Copy the 'boot.asm' file to the NASM directory (or other 
+convenient directory if you have setup the correct PATH variable). Open the 
+command prompt and change to the directory. Type the following command:</P>
+<P align=left>NASMW BOOT.ASM -o BOOT.BIN -f bin</P>
+<P align=left>'BOOT.ASM' is the name of the assembler source file. The -o flag 
+instructs the assembler to create the output file as 'boot.bin', you can change 
+the file name here if you want to have the executable in a different name. If 
+you don't supply the -o flag and the name of the executable, the executable is 
+created in the name of the source file without an extension. The -f flag 
+instructs the assembler to generate code for a target processor. The NASM is a 
+vary capable assembler and supports code generation for a variety of processors 
+and code types. The "-f bin" directive instructs the assembler to produce raw 
+binary output. This is what we want the assembler to do while assembling our 
+boot-strap loader.</P>
+<P align=left>NASM gives error messages with line numbers so you should be able 
+to get to the line that caused the error and rectify it. </P>
+<P align=left>Now that the boot-strap loader is ready we have to load it onto 
+the boot-sector of a floppy disk to make it useful. You have all the tools 
+needed with your Windows system. Fire up your console and change to the 
+directory where "boot.bin" resides. Now start Debug.exe by typing 'debug' with 
+the boot image name as a parameter. Debug is a console based low-level tool to 
+view memory locations, assemble small snippets etc. You may have to supply the 
+full path of the WINDOWS\COMMAND directory if it is not included in your system 
+PATH. You will get the Debug prompt of '-' as follows:</P>
+<P align=left>C:\NASM&gt;Debug boot.bin<BR>-</P>
+<P align=left>Now insert a clean DOS formatted floppy labelled into the first 
+floppy drive and issue the following command at the debug prompt</P>
+<P align=left>-W 100 0 0 1</P>
+<P align=left>Wait till the light goes off the floppy drive. Now issue 'Q' at 
+the debug prompt to exit debug as</P>
+<P align=left>-Q</P>
+<P align=left>The whole process will look like this:<BR>C:\NASM&gt;Debug 
+boot.bin<BR>-W 100 0 0 1<BR>-Q<BR>C:\&gt;</P>
+<P align=left>Unix/Linux users can copy the boot image to the boot sector of the 
+floppy disk using the following command</P>
+<P align=left>dd if=boot.bin bs=512 count=1 of=/dev/fd0</P>
+<P align=left>Thats it! Your boot-strap loader is ready for action. This is the 
+JOSH Boot floppy. What remains now is to develop a small kernel/shell to be 
+loaded and executed. That is the next part.</P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

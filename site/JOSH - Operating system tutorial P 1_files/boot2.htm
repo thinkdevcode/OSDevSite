@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0038)http://www.ansanest.com/josh/boot2.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="boot2_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Considerations before we write our boot-strap loader</H4>
+<P align=left>At the end of the BIOS boot process and just before loading the 
+boot-strap loader the system memory map will look as follows:</P>
+<P align=left>1. Memory block 0x0000 to 0x0040 (1-KB) will have a list of 
+addresses called the Interrupt Service Routine Vectors (more about ISR vectors 
+later). We should not touch this area unless we know what we are doing.</P>
+<P align=left>2. Memory block 0x0040 to 0x0100 (not actually upto 0x0100 but I 
+have picked up this limit for safety reasons and to use part of it at a later 
+time) is called the BIOS data area and it is in this area where the BIOS saves 
+data about the memory available, devices connected etc. We should not touch this 
+area unless we know what we are doing.</P>
+<P align=left>3. Memory block 0x0100 to 0x07C0 is free and is available for the 
+OS and applications.</P>
+<P align=left>4. Memory block 0x07C0 to 0x07E0 is where the boot-strap loader is 
+loaded by the BIOS. We should not touch this area from the boot-strap loader, 
+but we can overwrite this area once the OS is loaded and is under control.</P>
+<P align=left>5. Memory block 0x7CE0 to 0xA000 is free and is available for the 
+OS and applications.</P>
+<P align=left>6. Memory block 0xA000 to 0xC000 is set aside for the video 
+sub-system. We should not touch this area unless we want to write/draw to the 
+screen directly bypassing the BIOS routines for the same. There are reasons for 
+that to happen and the process will be discussed when needed.</P>
+<P align=left>7. Memory block 0xC000 to 0xF000 is the location of the ROM BIOS, 
+and we cannot write to that area under normal conditions.</P>
+<P align=left>8. Memory block 0xF000 to 0xFFFF is the base ROM system ROM (the 
+top of which is where the first instruction is present on a re-boot).</P>
+<P align=left>This is the condition of the memory layout during loading of the 
+boot-strap loader. Kindly make a drawing of the memory map to understand it 
+better. We will choose to load JOSH at memory location 0x0100, just above the 
+BIOS data area.</P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

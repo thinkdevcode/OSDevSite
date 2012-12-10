@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0043)http://www.ansanest.com/josh/interrupt1.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="interrupt1_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY bgColor=#ffffff>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Considerations before we write our first interrupt service</H4>
+<P align=left>An interrupt is an operation, which stops execution of the user 
+program so that the system can pay attention to the event causing the operation. 
+For eg. if you are playing some music with an application like media player. You 
+know that the application is busy converting the file into sound. Now you want 
+to stop playing and you hit the '.' key. What happens? The player application 
+stops for a moment (a very brief moment that does not produce an audible pause 
+in the music), analyses the key pressed, senses that you wanted to stop the 
+music, and finally stops the music from playing. If you had pressed any key this 
+would have happened, except the music stopping in the end. Interrupts are so 
+important that PCs would not function normally if interrupts are not 
+working.</P>
+<H4 align=left>How do Interrupts work?</H4>
+<P align=left>Interrupts have numbers, and there can be upto 256 different 
+interrupts. When an interrupt occurs (like a keypress or a mouse click), the 
+application running is stopped and the contents of the CS/IP/flags are pushed 
+into the stack, and the routine that has to handle the interrupting event is 
+executed. After execution of the routine, using an IRET call, execution returns 
+to the application. The locations of all the interrupt handling routines are 
+maintained at the beginning (0000:0000) of memory, and it is called the 
+Interrupt Service Routine table. The location of the interrupt handling routine 
+is identified by multiplying the interrupt number by four. The address 
+0000:(interrupt no. * 4) has the IP (two bytes) of the routine and the next 2 
+bytes have the CS of the routine. This address is moved to the CS:IP and the 
+routine is executed. The end of the interrupt routine will exit with a IRET 
+call, which will pop the Flags/IP/CS that was pushed before the interrupt, and 
+continue execution of the application that was running.</P>
+<H4 align=left>Our first interrupt service!</H4>
+<P align=left>We have to make a few decisions before we design our first 
+interrupt service. Some of them are as below:<BR>1. What will the interrupt 
+number be?<BR>2. How many sub-services will we support?<BR>3. How will we know a 
+sub-service - what register to use?<BR><BR>We will make a decision that we will 
+setup interrupt 0x21 (DOS uses the same number for a lot of services). We will 
+use the 'AL' register to differentiate between sub-services. We can support upto 
+256 sub-services, we needn't worry about the upper boundary now!</P>
+<P align=left>Firstly we will convert the function displaying 'zero' terminated 
+strings (_disp_str) as an interrupt service and use it to display the welcome 
+message. So service 0x01 of the interrupt 0x21 will display a string upto the 
+'zero' terminator, and the string should be pointed by the 'SI' register. Let us 
+start with a skeleton for the interrupt routine, which will look as 
+follows:</P><CODE><PRE>_int0x21:
+    iret
+    </PRE></CODE>
+<P align=left>This does nothing but return from the interrupt as soon as it 
+enters. Now we have to identify what service was actually wanted by checking the 
+contents of the 'AL' register. Let us do it as follows:</P><CODE><PRE>_int0x21:
+    _int0x21_ser0x01:       ;service 0x01
+    cmp al, 0x01            ;see if service 0x01 wanted
+    jne _int0x21_end        ;goto next check (now it is end)
+    
+    _int0x21_ser0x01_start:
+    lodsb                   ; load next character
+    or  al, al              ; test for NUL character
+    jz  _int0x21_ser0x01_end
+    mov ah, 0x0E            ; BIOS teletype
+    mov bh, 0x00            ; display page 0
+    mov bl, 0x07            ; text attribute
+    int 0x10                ; invoke BIOS
+    jmp _int0x21_ser0x01_start
+    _int0x21_ser0x01_end:
+    jmp _int0x21_end
+
+    _int0x21_end:
+    iret
+    </PRE></CODE>
+<P align=left>Now let us examine the code in detail. Each sub-service will start 
+with an identifier in the form of _int0x21_ser0x01, the first part being the 
+interrupt number and the second part being the service number. At the beginning 
+of each part a comparison is done of the 'AL' register against the sub-service 
+number. If the numbers do not match (it means it is a different sub-service that 
+was requested), execution should continue to the next sub-service (or to the end 
+of the interrupt service if it is the last service). As of now since service 
+0x01 will be the only one, if the service doesn't match, the routine should end. 
+Otherwise the code is the same (except for some label changes) that was used by 
+the _disp_str routine. Now, the interrupt routine above should completely 
+replace the _disp_str routine from the original kernel code.</P>
+<P align=left>Now that we have written the interrupt handler, we have to write 
+the location of the handler to the Interrupt Table for it to work. The routine 
+looks like this and should be inserted after the initiation block of the kernel 
+code that sets up the stack:</P><CODE><PRE>    ...
+    push dx
+    push es
+    xor ax, ax
+    mov es, ax
+    cli
+    mov word [es:0x21*4], _int0x21  ; setup our OS services
+    mov [es:0x21*4+2], cs
+    sti
+    pop es
+    pop dx
+    ...
+    </PRE></CODE>
+<P align=left>Let us examine the code in detail. We save the contents of the 
+'DX' and the 'ES' registers. Then we blank the 'AX' register and move its 
+contents to the 'ES' register (it is just a fast way to do and anything else 
+will also work). Then we disable interrupts as we are meddling with interrupts 
+themselves. The first 'MOV' command will move the location of start of the 
+interrupt routine to the es:0x21*4 location (remember that a label points to the 
+next instruction in NASM and please read how NASM calculates memory addresses). 
+The second 'MOV' command moves the CS value to the Interrupt table (remember 
+that the current CS value is the correct value for the interrupt). Next we 
+enable interrupts and pop the saved values in reverse order. That is what it 
+takes to write a small interrupt handler and setup the interrupt table 
+entry!</P>
+<P align=left>One more thing has to be done. The call that displays the welcome 
+message has to be changed to the following:</P><CODE><PRE>    mov si, strWelcomeMsg   ;load message
+    mov al, 0x01            ;request sub-service 0x01
+    int 0x21
+    </PRE></CODE>
+<P align=left>The complete kernel code can be downloaded <A 
+href="http://www.ansanest.com/josh/kernel0.02.asm">here</A>.</P>
+<P align=left>Finally you have to assemble the code and copy the resultant 
+KERNEL.BIN file to the bootable floppy you already created. Go ahead and try, 
+you will see JOSH booting as it did before, only that it is a new animal with 
+its own interrupt handler.
+<P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

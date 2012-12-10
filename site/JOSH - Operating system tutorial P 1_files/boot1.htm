@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0038)http://www.ansanest.com/josh/boot1.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="boot1_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Operating system basics</H4>
+<P align=left>This discussion of the OS basics should not be considered as an 
+expert discussion and for more help you are advised to refer books on OS 
+development ('Operating Systems - design and implementation' by Andrew S 
+Tanenbaum is an excellent book). A general understanding of how applications 
+execute, the existence of registers, their functions, the existence of the stack 
+etc. are assumed to be present and this tutorial is not the place to look for 
+such information. Now let us dive right in to develop JOSH.</P>
+<H4 align=left>The Boot process</H4>
+<P align=left>The bootup process is what happens when we power up the PC. When 
+we power up the PC, all registers are blanked and the microprocessor is set to a 
+reset state. Then the address 0xFFFF is loaded into the code segment and the 
+instruction present at that location is executed. Taking this fact into 
+consideration the basic software called BIOS (Basic Input Output System) is 
+present at that location. So the BIOS will execute as a result. The BIOS will 
+run a necessary check of all memory for errors, connected devices - like serial 
+ports etc, and after completion of these system checks will search for the 
+Operating System, load it and execute it. By making changes in the BIOS setup 
+(we can enter into the BIOS settings by hitting the relevant key during the 
+bootup process) we can make the BIOS look for the OS from the floppy disk, hard 
+disk, CD-ROM etc in any order we want. We will have to make the BIOS look for 
+the floppy first for the OS when we start developing JOSH.</P>
+<P align=left>The BIOS will not load the complete operating system. It will just 
+load a fragment of code present in the first sector (also called boot sector) of 
+the floppy disk (we will keep all discussions to the floppy disk as JOSH will 
+not touch the Hard-disk now). This fragment of code will be 512 bytes long (if 
+we use a DOS formatted floppy) and the last two bytes of the fragment should be 
+0xAA55 (also called the boot signature). If the boot signature is absent the 
+floppy disk is not considered bootable and the BIOS will search the next disk 
+for a valid boot signature and the OS. This tiny fragment of code that has to be 
+present in the boot sector is called the boot-strap loader. The BIOS will load 
+the boot-strap loader into memory starting at 0x7C00 (remember that all segment 
+addresses start at a paragraph boundary and hence the lower '0' of 0x7C00 is 
+asumed to be present and the address will be translated as 0x07C0 when we move 
+it to a segment register) and execute the boot-strap loader. It is now up to the 
+boot-strap loader to load the operating system and make the necessary settings 
+for the correct functioning of the operating system. This is the boot process 
+and the reader is advised to understand this process well before continuing.</P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

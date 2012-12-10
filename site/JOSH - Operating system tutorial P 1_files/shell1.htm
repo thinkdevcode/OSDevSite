@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0039)http://www.ansanest.com/josh/shell1.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="shell1_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY bgColor=#ffffff>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Shell/Command Interpreter</H4>
+<P align=left>The shell or the command interpreter (we will hereafter refer to 
+this as the shell) is the routine, which communicates with the user in a console 
+based operating system like JOSH. The shell displays a prompt, gets user input, 
+analyses it and performs the necessary action. Usually there are commands that 
+the shell understands itself and provides the user with the necessary result - 
+these commands are called internal commands. Sometimes the shell doesn't 
+understand the command, and usually in this situation it tries to find a file 
+with the command name and loads it for execution, if it is executable.</P>
+<P align=left>The shell is the interface between the operating system and the 
+user and hence it is very important. Intuitiveness and usefulness of the shell 
+determines if the OS is liked or hated by the user. The design of a shell takes 
+into consideration many factors:<BR>1. Should the shell be part of the kernel or 
+should it be another application that the kernel loads automatically? - This is 
+an important consideration as shell being part of the kernel will usually retain 
+that space in memory throughout, resulting in reduced memory availability for 
+user applications. The other option is better as the shell can be overwritten by 
+the user application and re-loaded when the user application terminates. We will 
+use the former approach as it is easy to code and we are aiming to provide only 
+minimal functionality with the shell, which wouldn't take much space.<BR>2. 
+Length of the commands the shell can receive - We will set this limit as 255 
+characters. The shell will receive only 255 characters.<BR>3. How many operands 
+will a typical command have? - The operands can modify the command and sometimes 
+will be parameters to the command. We will decide that the JOSH shell will 
+accept a command with 4 operands and anything more will be discarded. The 
+command and operands will be on a single string of characters and will be 
+separated by spaces. The shell can identify 
+leading/trailing/multiple-intermittent spaces and will remove them while 
+deriving the command and the operands.<BR>4. What internal commands will the 
+shell support? - We will not define this at this moment. We will add internal 
+commands as they are needed.</P>
+<P align=left>Having said so much let us delve into the design of the JOSH 
+shell. Move on to the next chapter.</P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

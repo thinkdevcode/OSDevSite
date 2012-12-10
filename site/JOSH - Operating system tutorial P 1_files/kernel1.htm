@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0040)http://www.ansanest.com/josh/kernel1.htm -->
+<HTML><HEAD><TITLE>JOSH - Operating system tutorial</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><LINK 
+href="kernel1_files/style.css" type=text/css rel=STYLESHEET>
+<META content="MSHTML 6.00.2800.1170" name=GENERATOR></HEAD>
+<BODY>
+<H2 align=center>Operating system design &amp; implementation - tutorial</H2>
+<H4 align=left>Considerations before we write our kernel/shell</H4>
+<P align=left>The kernel is the core of the OS performing most of the 
+house-keeping work and providing the applications with a good set of 
+functionality. The kernel is generally never unloaded from memory. The kernel 
+(or its functionality) should be available always and applications should have a 
+way of interacting with the kernel in a seamless manner. There are many ways to 
+implement this and in real mode interrupts provide a seamless and fast way to 
+provide the functionality. JOSH will provide all the functionality to 
+applications through interrupts. We will discuss about interrupts when it is 
+needed.</P>
+<H4 align=left>Writing and assembling a rudimentary kernel</H4>
+<P align=left>We will start out to write a rudimentary kernel, which will 
+display a welcome message, wait for a keypress, and will reboot. We will use 
+BIOS interrupts extensively for display until we develop our own routines to 
+display text/graphics using the VGA RAM.</P>
+<P align=left>NASM uses three segments, '.text' for code, '.data' for 
+initialized data (such as constants that never change), and '.bss' for 
+un-initialized data (such as variables that can be used later). Our code starts 
+from the first line (unlike in DOS executables where the first 0x100 bytes will 
+have a header for the program loader and the actual code starts after that) and 
+to tell this to the assembler you have to use 'org 0x0000', which will set the 
+IP to the first word of the executable. The 'bits 16' directive tells the 
+assembler to assemble 16 bit real mode code. The skeleton kernel without any 
+code will look as follows:</P><CODE><PRE>;*********************start of the kernel code***********
+[org 0x0000]
+[bits 16]
+
+[SEGMENT .text]
+
+[SEGMENT .data]
+
+[SEGMENT .bss]
+
+;*********************end of the kernel code*************
+</PRE></CODE>
+<P align=left>We first have to write a function to display a string so that we 
+can call the function as needed. Let's call the function "_disp_str". The 
+function should be under the '.text' segment.</P>
+<P align=left>The function is as follows:</P><CODE><PRE>[SEGMENT .text]
+_disp_str:
+    lodsb           ; load next character
+    or  al, al      ; test for NUL character
+    jz  .DONE
+    mov ah, 0x0E    ; BIOS teletype
+    mov bh, 0x00    ; display page 0
+    mov bl, 0x07    ; text attribute
+    int 0x10        ; invoke BIOS
+    jmp _disp_str
+.DONE:
+    ret
+</PRE></CODE>
+<P align=left>'lodsb' loads a character from the DS:SI memory location into the 
+AL register. Check if it is the null character (we will terminate all strings 
+with the null character 0x00). If yes jump to the end of the function and 
+return. Else, display the character in AL using the BIOS teletype display 
+service. We use the teletype service so that it will automatically respond to 
+'carriage return', 'bell', 'backspace' etc. With every displayed character the 
+loop loads the next character to the AL register until it is a null character. 
+Before the function is called, the location of the string to be displayed has to 
+be correctly initialized to the DS:SI register pair.</P>
+<P align=left>Next initialize the string with the message (note the trailing 
+0x00 null character at the end of the string) in the '.data' segment as 
+follows:</P><CODE><PRE>[SEGMENT .data]
+    strWelcomeMsg   db  "Welcome to JOSH!", 0x00
+</PRE></CODE>
+<P align=left>As already discussed with the boot-strap loader code we have to 
+initialize the segment registers before any other code. The initialization code 
+is as follows:</P><CODE><PRE>[SEGMENT .text]
+    mov ax, 0x0100      ;location where kernel is loaded
+    mov ds, ax
+    mov es, ax
+    
+    cli
+    mov ss, ax          ;stack segment
+    mov sp, 0xFFFF      ;stack pointer at 64k limit
+    sti
+
+_disp_str:
+    ...
+</PRE></CODE>
+<P align=left>After initializing the data, stack and extra segments to the code 
+segment, the stack pointer is set at 0xFFFF at 64K boundary. This gives room for 
+a big stack segment and should be more than enough for the time being.</P>
+<P align=left>Now we should make a call to the display function to display the 
+welcome message. To do that load the SI register with the address of the welcome 
+string and call the function. NASM gives the address of variables (called 
+tokens) when referenced without any braces around them (this is different from 
+what MASM users will expect). The code is as follows:</P><CODE><PRE>    ...
+    sti
+
+    mov si, strWelcomeMsg   ;load message
+    call    _disp_str
+    ...
+</PRE></CODE>
+<P align=left>Next terminate the kernel after waiting for a keypress as 
+follows:</P><CODE><PRE>    ...
+    call _disp_str
+
+    mov ah, 0x00
+    int 0x16            ; await keypress using BIOS
+    int 0x19            ; reboot
+    ...
+</PRE></CODE>
+<P align=left>Thats the code of the rudimentary kernel, which should now be able 
+to print a welcome message to the screen, wait for a key press and reboot. The 
+complete code for the rudimentary kernel can be <A 
+href="http://www.ansanest.com/josh/kernel0.01.asm">downloaded</A>.</P>
+<P align=left>Assemble the kernel with the following command:</P>
+<P align=left>nasmw kernel.asm -o kernel.bin -f bin</P>
+<P align=left>This should produce a small 'kernel.bin' file in the default 
+directory. Copy this file to the JOSH boot floppy you just created. Insert the 
+floppy into the PC and reboot the system. You should see JOSH being loaded, 
+print a welcome message, wait for a key press and reboot. Remove the floppy to 
+reboot normally.</P>
+<P align=left>If you have come this far you can give a pat on your back that you 
+have made quite some progress into developing your own OS. The journey has just 
+started and it is going to be even more fun. Move on to the next chapter.</P>
+<P align=left>
+<HR align=left color=purple>
+
+<P></P>
+<ADDRESS>Written by <A href="mailto:d_mohan_raj@hotmail.com">Dr. Mohan Raj 
+Dhanagopal</A></ADDRESS></BODY></HTML>

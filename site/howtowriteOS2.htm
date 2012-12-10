@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0091)http://www.groovyweb.uklinux.net/index.php?page_name=how%20to%20write%20your%20own%20os%202 -->
+<HTML><HEAD><TITLE>how to write your own os 2 -Groovyweb tutorials Howto.tk</TITLE>
+      <CENTER><a href="http://os.gtproductions.org">Back to OS Dev</a></CENTER>
+      <DIV></DIV></FORM></FONT></PR><FONT face=verdana size=-1>By: 
+      the@womble.co.uk<BR><FONT face=verdana size=-1>
+      <H1>How to write an operating system, part 2</H1>In part one, assembly 
+      language was very briefly covered, and the practical way an os works was 
+      covered. Now we say good bye to assembly language (for a short time) and 
+      say hello to friendly c programming. Also, this tutorial is alot shorter, 
+      as the hardest stuff was covered in the first tutorials, but there is alot 
+      of sourcecode to add to and learn from.<BR><BR>
+      <H3>Tools:</H3><A 
+      href="http://www.geocities.com/groovyos/tutor.zip">http://www.geocities.com/groovyos/tutor.zip</A><BR>MinitOS 
+      by competer_uk@yahoo.co.uk and then I hacked on the shell and some 
+      bits<BR>Includes source, nasm (assembler), tcc (c compiler)<BR><BR>Open 
+      the zip file, and run make.bat (sorry Linux lovers, the zip file is 
+      designed for dos. The assembly doesn't need to be changed, but you'll have 
+      to change the c a bit. E-mail me for how)<BR>Now restart and be amazed. 
+      The commands are:<BR>run -After typing this type LOADME COM (two spaces 
+      between loadme and com) and enjoy a funky screensavers. Which then 
+      crahses<BR>restart -An amazing exclusive feature of 
+      minitos<BR><BR>boot.asm can be ignored, it does nothing new. It includes 
+      certain text at the top to day the disk is in FAT 12 format, and then 
+      loads SYSTEM.COM<BR><BR><B>Why can't I use stdio.h</B><BR>There is a great 
+      explanation at <A 
+      href="http://www.execpc.com/~geezer/osd/libc/index.htm">http://www.execpc.com/~geezer/osd/libc/index.htm</A><BR>Basically, 
+      they need to be ported. When I was trying to work out what, Chris Benesch 
+      said "To do printf, you dont need assembly. You can include <STDARG.H>and 
+      use a va_list. " -This works for gcc. I think. i'm very new to c, so you 
+      can probably find far easier ways to write an os, but in this os as the 
+      functions are done in assembly you will learn alot.<BR><BR><B>Using asm 
+      functions from c</B><BR>System.asm and system.c aren't separate programs, 
+      they are built then linked, so it is as if they are the same 
+      program.<BR>System.asm is made up of functions that are used by 
+      c.<BR><BR>When tcc calls a function, it puts the text sent at bp+4. It 
+      then looks for the output in ax and dx. Tcc (unlike gcc) cuts off the 
+      first character of the function name, which is why _setvalue in asm 
+      becomes setvalue in c. To declare an asm function use the following code: 
+      GLOBAL _setvalue and then the following in the c file: extern 
+      setvalue();<BR>The following pointless function I wrote to set a value in 
+      c:<BR><PRE><FONT face=verdana size=-1>
+system.c:
+
+extern setvalue();
+static int i;
+i=setvalue("run");
+
+system.asm:
+_setvalue: push bp		       ;Sets a value
+	 mov bp,sp
+	 sub sp,0x40
+	 mov bx,[bp+4] ;Gets data sent from c
+	mov si,bx
+
+ 	mov ax,si ;C looks for result in ax and dx
+ 	mov dx,si
+	 mov sp,bp
+	 pop bp
+	 ret
+</PRE><BR>That's about all you need to do to use asm in your os. The most 
+      can be learnt from looking at the source code.<BR>Try adding another 
+      function that allows you to multiply or something.<BR><BR>Well that's 
+      it.<BR><BR>For updates of the os, check out <A 
+      href="http://www.groovyweb.uklinux.net/index.php?page_name=groovyos">http://www.groovyweb.uklinux.net/index.php?page_name=groovyos</A> 
+      and if you add anything, e-mail me at the@womble.co.uk and I'll be really 
+      greatful.<BR>
+
+      <p><CENTER><a href="http://os.gtproductions.org">Back to OS Dev</a></p></CENTER>
+</BODY></HTML>

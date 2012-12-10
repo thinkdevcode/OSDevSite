@@ -1,0 +1,544 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0087)http://www.groovyweb.uklinux.net/index.php?page_name=how%20to%20write%20your%20own%20os -->
+<HTML><HEAD><TITLE>how to write your own os -Groovyweb tutorials Howto.tk</TITLE>
+<BODY bgColor=#fffdff>
+      <CENTER><a href="http://os.gtproductions.org">Back to OS Dev</a></CENTER>
+      <DIV></DIV></FORM></FONT></PR><BR>By: the@womble.co.uk (Questions welcome. 
+      Spam not) <BR>More at: http://www.groovyweb.cjb.net, 
+      http://www.axion-network.net<BR><FONT face=verdana size=-1>
+      <H1>How to write an operating system</H1>Writing an operating system is 
+      something that can not only be interesting (if you're one of those people 
+      that get turned on by Int 13....) but it is also a great learning 
+      experience. Through creating your own operating system you will learn 
+      exactly what goes on behind the scenes, elevating you above the average 
+      programmer that just writes in Visual Basic.<BR><BR>In this tutorial you 
+      will be tought by examples, and by the end you should have created your 
+      own operating system.<BR>
+      <H3>Tools:</H3>EasyOS is a very simple operating system, it contains all the 
+      tools needed to build an operating system. (Not written by me, although I 
+      did add bits to it and mess it up a bit)<BR><BR><B>A quick explanation of 
+      assembly:</B> (see <A 
+      href="http://www.groovyweb.uklinux.net/index.php?page_name=assembly%20language%20how%20to">here</A> 
+      for a good tutorial)<BR><BR><B>si and ah</B> Think of si as something to 
+      put text into, and ah as something to put numbers into.<BR><B>mov</B> This 
+      (mov)es data. mov ah,0 would move 0 into ah. (The data on the right is 
+      moved into the left)<BR><B>Int</B> Think of these as functions. Different 
+      int's do different things when ah is different. Ahem. Eg. when ah = 0 and 
+      you call int 10 it prints si to the screen.<BR><B>Stuff</B> To put words 
+      and stuff in your program you can't just do mov si,'some words' (well, you 
+      can but you wont like the resutls) so instead you have to declare the 
+      words first. You do this by putting the name of what you want the words to 
+      be called by, then the data type (nearly always db) then the words 
+      themselves. Eg:<BR>name db 'some words'<BR><B>Jump</B> To give sections of 
+      code a label, just type the label and add a : at the end, eg code: . You 
+      can then use jmp to jump to it, eg jmp code <B>If</B> To do an if in 
+      assembly you use cmp, eg cmp al,0 (if al=0). On the next line you then put 
+      je code, and if al=0 then the program jumps to the section of code called 
+      code. If you use jne code, then if al is not 0 the program will jump to 
+      code. <BR><B>The stack</B> The stack is where stuff is stored. push pushes 
+      stuff into it, pop pulls stuff out. The following example would put cx 
+      into dx:<BR>push cx pop dx<BR><BR>Now you know everything there is to know 
+      about assembly, you can now understand most of the program that boot's 
+      EasyOs. Drives (hard drives and floppy's) are split into lots of bits, all 
+      512 bytes long (enough to fit 512 letters in). These are calle sectors. 
+      The first sector is what the computer looks for when it boots. It is 
+      called the bootsector.<BR>Open the folder src and then open boot.asm. Or 
+      if you are lazy, just look at the code below (its the same). <PRE><FONT size=-1>
+; This is a comment
+[ORG 0x7C00] ;This just tells the program where it is in the memory. Not important
+[BITS 16] ;Not important too.
+
+jmp start		; Jump over BIOS parameter block
+
+start: ;The label for the start of the actual program
+
+push cs ;Put cs onto the stack
+pop ds ;Take it out and put it into ds
+
+
+mov si,Print_loading     ;Print loading message
+call printstring		 ;Call is like jump, but it goes back. Like a function
+
+
+						 ;The complicated bit: Loads the next program
+mov ah,02h               ;When ah=, int13 reads a disk sector
+mov al,4			 	 ;Al is how many sectors to read
+mov ch,0			 	 ;The track to read from
+mov cl,2			 	 ;Sector Id
+mov dh,0			 	 ;Head
+mov dl,0			 	 ;Drive (0 is floppy)
+mov bx,0x1000			 ;Es and Bx put together are where to load the program too (see jmp 0x1000:0x00)
+mov es,bx
+mov bx,0x00
+int 13h					;Int 13 is all functions for disks
+
+mov si,putdot           ;Print a ".".
+call printstring
+
+jmp 0x1000:0x00         ;Run Bootinit from stack.
+
+printstring:            ;Print string routine.
+mov ah,0eh				;Mov ah into 0, so int 10 prints
+stringloop:				;The following code loads each seperate charcter so it can be printed
+lodsb					
+cmp al,00				;If al =0, then the string has all been loaded
+je endstring
+int 10h					;When int 10 is called, and ah=, it prints
+jmp stringloop
+endstring:
+ret						;Ret returns
+
+
+
+putdot        db '.',0
+Print_loading db 13,10,'Loading Easy OS v0.01a...',0
+times 425 db 0 ;wastes 425 bytes on purpose, so the sector is full (The program must be 512 bytes long)
+
+</PRE>You may have noticed that numbers, like int 10h, end in h. They 
+      don't have to, it just looks funky (there is a real reason, but it's 
+      boring).<BR>Anyway, now copy the program called copyboot in the folder 
+      called utils to the folder with test.asm in. Open the dos prompt and type: 
+      (Make sure a blank floppy is inserted)<BR>copyboot test.com 0<BR>copyboot 
+      is the name of the program, test.com the name of the file to copy, and 0 
+      is the sector.<BR>In the program above all it does is print a string then 
+      load whats at sector 1. The program that easyos loads under the src folder 
+      called bootinit. If you assemble it with nasm, then copy it to sector 1 
+      and restart, the bootsector will load it.<BR>There isn't much more to be 
+      learnt from EasyOs, so run either setup.exe or make.bat to build the whole 
+      thing. The difference is setup.exe lets you setup a root password for 
+      EasyOs. If you just run make.bat the passwords is the default password: 
+      monty (named after my psychotic dog).<BR>Now restart and be amazed. Wow. 
+      Pretty crappy, but it isn't that bad.<BR><BR>
+      <H3>Fat 12</H3>No, its not a fat people supprt group but a file system. If 
+      you try and access the floppy disk Windows will say it need s to be 
+      formatted. Formatted? You ask. Formatting is basically organising the 
+      sectors so you can give them names. Underneath Windows and Fat, you are 
+      still just accessing sectors. I won't go into Fat here, check out <A 
+      href="http://www.maverick.subnet.dk/">http://www.maverick.subnet.dk/</A> 
+      for some info. Anyway, the bootsector needs to have some information in it 
+      that when Windows reads it it tells it it is fat. The following BootSector 
+      was disgustingly ripped by me of NYAOS (I have no idea what i stands for). 
+      With your A* qualification in assembly language you can no doubt 
+      understand it.<PRE>; NYAOS Boot Sector (C) Copyright Sean Tash 1998
+; assemble with:
+; nasm -f bin -o bootsect.bin bootsect.asm
+            bits 16
+            org 0x7C00
+
+start:      jmp short begin
+            nop
+bsOEM       db "NYAOS1.0"               ; OEM String
+bsSectSize  dw 512                      ; Bytes per sector
+bsClustSize db 1                        ; Sectors per cluster
+bsRessect   dw 1                        ; # of reserved sectors
+bsFatCnt    db 2                        ; # of fat copies
+bsRootSize  dw 224                      ; size of root directory
+bsTotalSect dw 2880                     ; total # of sectors if &lt; 32 meg
+bsMedia     db 0xF0                     ; Media Descriptor
+bsFatSize   dw 9                        ; Size of each FAT
+bsTrackSect dw 18                       ; Sectors per track
+bsHeadCnt   dw 2                        ; number of read-write heads
+bsHidenSect dd 0                        ; number of hidden sectors
+bsHugeSect  dd 0                        ; if bsTotalSect is 0 this value is
+                                        ; the number of sectors
+bsBootDrv   db 0                        ; holds drive that the bs came from
+bsReserv    db 0                        ; not used for anything
+bsBootSign  db 29h                      ; boot signature 29h
+bsVolID     dd 0                        ; Disk volume ID also used for temp
+                                        ; sector # / # sectors to load
+bsVoLabel   db "NO NAME    "            ; Volume Label
+bsFSType    db "FAT12   "               ; File System type
+
+begin:      cli                         ; disable interrupts
+            mov [bsBootDrv],dl          ; save drive number
+            mov ax,0x9000               ; put stack at 0x98000
+            mov ss,ax
+            mov sp,0x8000
+
+            mov cx,[bsTrackSect]        ; update int 1E FDC param table
+            mov bx,0x0078
+            lds si,[ds:bx]
+            mov byte [si+4], cl
+            mov byte [si+9], 0x0F
+
+            sti                         ; enable interrupts
+            push ds
+            mov dl,[bsBootDrv]          ; reset controller
+            xor ax,ax
+            int 0x13
+            pop ds
+            jc bootfail2                ; display error message
+            jmp _l1
+bootfail2:  jmp bootfail
+_l1:
+            mov ax,0x0000
+            mov es,ax
+            mov ds,ax
+
+            mov si,MsgLoad              ; display load message
+            call putstr
+
+            ; find the root directory
+
+            xor ax,ax
+            mov al,[bsFatCnt]
+            mov bx,[bsFatSize]
+            mul bx
+            add ax,word [bsHidenSect]
+            adc ax,word [bsHidenSect+2]
+            add ax,word [bsRessect]     ; ax holds root directory location
+            mov word [BootSig],ax
+
+            call checkroot
+
+            xor ax,ax
+            add ax,word [start]
+            add ax,word [bsVolID]       ; sector number
+            add ax,word [BootSig]
+            sub ax,2                    ; correction for a mis-calc
+            mov cx,word [bsVolID+2]     ; number of sectors
+
+            mov bx,0x8000
+            mov es,bx
+
+
+nextsector: push ax                     ; save registers
+            push cx
+            push dx
+            push es
+
+            xor bx,bx                   ; set zero offset
+            call readsect               ; read a sector
+
+            mov si,MsgDot               ; display a dot
+            call putstr
+
+            pop es                      ; restore registers
+            pop dx
+            pop cx
+            pop ax
+            mov bx,es
+            add bx,20h                  ; increment address 512 bytes
+            mov es,bx
+            inc ax                      ; read next sector
+            loopnz nextsector
+
+            mov ax,0x8000               ; set segment registers and jump
+            mov es,ax
+            mov ds,ax
+            push ax
+            mov ax,0
+            push ax
+            retf
+
+checkroot:
+            push ax                     ; save registers
+            push bx
+            push cx
+            push dx
+            push si
+            push di
+            
+            mov ax,0x8000               ; put root directory at 0x80000
+            mov es,ax
+            mov ax,32                   ; AX = ((32*RootSize)/512) + 2
+            mul word [bsRootSize]
+            div word [bsSectSize]
+            mov cx,ax                   ; cx holds # of sectors in root
+            mov word [start],ax
+            mov ax,word [BootSig]       ; get prev. saved loc. for root dir
+
+r1:         xor bx,bx
+            push cx                     ; save count
+            push ax                     ; save sector number
+            push es
+            push dx
+            call readsect
+            xor bx,bx
+l_1:        mov di,bx                   ; set address to check from
+            mov cx,11                   ; check 11 bytes
+            mov si,FileName             ; address of string to check with
+            repz cmpsb
+            je foundit
+            add bx,32                   ; check next entry
+            cmp bx,[bsSectSize]         ; end of sector?
+            je l_2
+            jmp l_1
+l_2:        pop dx                      ; restore registers
+            pop es
+            pop ax
+            pop cx
+            inc ax                      ; read next sector
+            loopnz r1
+            jmp bootfail
+foundit:    pop dx                      ; get these off the stack
+            pop es
+            pop ax
+            pop cx
+
+            mov di,0x1A                 ; get clustor #
+            add di,bx
+            push bx                     ; save bx for finding # of sectors
+            mov ax,[es:di]
+            xor bx,bx                   ; calculate sector #
+            mov bl,[bsClustSize]
+            mul bx                      ; ax holds sector #
+            mov word [bsVolID],ax
+
+            pop bx                      ; get location of directory entry
+            mov di,0x1C
+            add di,bx
+            mov ax,[es:di]              ; put number of bytes in ax
+            xor dx,dx
+            mov bx,[bsClustSize]        ; # of bytes / 512
+            div bx
+            inc ax
+            mov word [bsVolID+2],ax     ; save number of sectors to load
+
+            pop di                      ; restore registers
+            pop si
+            pop dx
+            pop cx
+            pop bx
+            pop ax
+            
+            ret                         ; return to caller
+            
+putstr:     ; SI = address of string to display
+            lodsb
+            or al,al
+            jz short putstrd
+            mov ah,0x0E
+            mov bx,0x0007
+            int 0x10
+            jmp putstr
+putstrd:    retn                        ; return to caller
+
+bootfail:   ; display failure message
+            mov si,MsgBad               ; display error message
+            call putstr
+            xor ax,ax                   ; wait for keypress
+            int 0x16
+            int 0x19                    ; reboot
+
+readsect:   ; ES:BX = Location ; AX = Sector
+            mov si,[bsTrackSect]
+            div si                      ; divide logical sect by track size
+            inc dl                      ; sector # begins at 1
+            mov [bsReserv],dl           ; sector to read
+            xor dx,dx                   ; logical track left in ax
+            div word [bsHeadCnt]        ; leaves head in dl, cyl in ax
+            mov dh, [bsBootDrv]         ;
+            xchg dl,dh                  ; head to dh, drive to dl
+            mov cx,ax                   ; cyl to cx
+            xchg cl,ch                  ; low 8 bits of cyl to ch, hi 2 bits
+            shl cl,6                    ; shifted to bits 6 and 7
+            or cl, byte [bsReserv]      ; or with sector number
+            mov al,1                    ; number of sectors
+            mov ah,2                    ; use read function of int 0x13
+            int 0x13                    ; read sector
+            jc bootfail                 ; display error message
+            ret                         ; return to caller
+
+padding     times 45 db 0
+FileName    db "OSLOADERCOM"
+MsgBad      db "Disk Error...",13,10,0
+MsgDot      db ".",0
+MsgLoad     db "doors loading",0
+BootSig     db 0x55, 0xAA
+
+</PRE><BR>Anyways, copy the above program, save it, build it with nasm, 
+      copy it with copyboot.<BR>As you can guess above, it loads a program 
+      called 'OSLOADER.COM' off of the floppy. So, if you want a particularily 
+      funky os, build the following with nasm: <PRE>;Funky squares
+;
+;Assembles with NASM
+;Made by Frej <FREJ@MULTI.FI> somewhere between april and may 2000
+;Bits reprogrammed to run within DeviatorOS
+;
+;This demo is just to show you how small graphical demos can get ;)
+;Reprogrammed for DeviatorOS as demo program
+
+        org 0x0000
+        mov ax,cs
+        mov ds,ax
+        mov es,ax         ; fix segment regs
+
+start:  mov bx,cs         ;put codesegment to bx
+        add bh,0x20       ;add 2000 to bx
+        mov ds,bx         ;and put it to ds
+        mov ax,0x13       ;set ax to videomode 13
+        int 10h           ;and do that
+Main:   push ds           ;put buffer seg to stack
+        pop es            ;and put that into es
+        in ax,0x40        ;generate "random" number (timer)
+        shl ax,4          ;multiply random # with 16
+        mov di,ax         ;box offset (random)
+        mov al,255        ;color of the box
+        mov bx,50         ;height=50
+pl:     add di,270        ;di+270 (320-width(50))
+        mov cx,50         ;# bytes to copy to buffer
+        rep stosb         ;and do it
+        dec bx            ;decrement bx
+        jnz pl            ;jump if bx not zero
+        mov bh,0xFA       ;assume bl = 0 (-&gt; bx = FA00)
+Smudge: mov al,[bx+1]     ;right color to al
+        mov cl,[bx-1]     ;left color to cl
+        add ax,cx         ;and add it to ax
+        mov cl,[bx-320]   ;upper color to cl
+        add ax,cx         ;and add it to ax
+        mov cl,[bx+320]   ;lower color to cl
+        add ax,cx         ;and add it to ax
+        shr ax,2          ;divide with 4
+        mov [bx],al       ;and but the avarage color to buffer
+        dec bx            ;decrement bx
+        jnz Smudge        ;jump if bx not zero
+        mov ax,0xA000     ;vga seg
+        mov es,ax         ;put it to es
+        mov ch,0xFA       ;# bytes to copy to vga
+        xor di,di         ;zero vga offset
+        xor si,si         ;zero buffer offset
+        rep movsb         ;and do that
+        in al,0x60        ;check for keys
+        dec al            ;was it esc?
+        jnz Main          ;nope, continue
+        mov ax,3          ;text mode
+        int 10h           ;get back into text mode
+        xor ah,ah         ;yes, return to OS
+        int 0x18          ;back to good old kernel
+;Note:- This was, as you can guess, ripped by from an os. So when it goes back to the 'good ol kernel' it just restarts.
+</PRE>Build it with nasm, but rather than faffing around copyboot, just 
+      name is as OSLOADER.COM and copy it to the floppy.<BR>Now restart and 
+      enjoy the funkiness. Woah dood.<BR><BR>
+      <H3>C</H3>Time to escape assembly language. The boot sector has to be 
+      written in assembly, but nothing else does. Unfortunately you can't just 
+      go and write a cool shell with Visual C++. First of all, its has to be a 
+      .com program, not .exe.<BR>.exe programs are just .com with a bit of extra 
+      info. at the start giving some info on what the program is. It's very easy 
+      to add .exe capabililty to an os, or you can download a program called 
+      exe2com.<BR>The serious problem though is that you can create your own 
+      ints to make things easier. EasyOs does this (look in kernel.asm under the 
+      src folder) and Dos does this too (Dos makes int 21). By default, 
+      compilers build a program with these ints.<BR>
+      <H3>For linux lovers</H3>The following code is for Gcc on linux and nasm 
+      for dos or linux. Dos/ Windows users can download Djgpp from 
+      http://www.delorie.com/djgpp/, which is like gcc. The line<BR>gcc -c -O2 
+      -Wall -g -o hello.o hello.c<BR>Tells gcc to build a plain binary. I don't 
+      know who wrote the following, e-mail me if you do. <PRE>The smallest pmode + C program I could write is shown below,
+in three files. I compiled with GCC, not GPP, and got no
+warnings.
+
+This code doesn't check for a 32-bit CPU or V86 mode. If you
+try to run it inside a DOS box, Windows will kill it.
+
+load.asm is assembled to aout format instead of COFF, because
+DJGPP COFF doesn't let you mix 16- and 32-bit code.
+
+;/****************************************************************************
+;       file load.asm
+;****************************************************************************/
+[SECTION .text]
+[BITS 16]
+[GLOBAL start]
+start:  xor ebx,ebx             ; now in real mode (16-bit)
+	mov bx,cs
+	shl ebx,4
+	mov eax,ebx		; EAX=EBX=CS&lt;&lt;4
+	lea eax,[ebx]
+	mov [gdt2 + 2],ax	; set descriptor base address=EAX
+	mov [gdt3 + 2],ax
+	shr eax,16
+	mov [gdt2 + 4],al
+	mov [gdt3 + 4],al
+	mov [gdt2 + 7],ah
+	mov [gdt3 + 7],ah
+	lea eax,[ebx + gdt]	; point gdt_ptr to the gdt
+	mov [gdt_ptr + 2],eax	; EAX=linear address of gdt
+	push dword 0		; zero EFLAGS (interrupts off,
+	popfd			;  IOPL=0, NT bit=0)
+	lgdt [gdt_ptr]
+	mov eax,cr0
+	or al,1
+	mov cr0,eax
+	jmp SYS_CODE_SEL:do_pm
+[BITS 32]
+do_pm:  mov ax,SYS_DATA_SEL     ; now in 32-bit pmode
+	mov ds,eax		; EAX works, one byte smaller :)
+	mov ss,eax
+        nop
+	mov es,eax
+	mov fs,eax
+	mov gs,eax
+	xor eax,eax		; zero top 16 bits of ESP
+	mov ax,sp
+	mov esp,eax
+[EXTERN _main]
+	call _main		; call C code
+	jmp $			; freeze
+
+[SECTION .data]
+; null descriptor
+gdt:	dw 0			; limit 15:0
+	dw 0			; base 15:0
+	db 0			; base 23:16
+	db 0			; type
+	db 0			; limit 19:16, flags
+	db 0			; base 31:24
+; linear data segment descriptor
+LINEAR_SEL	equ	$-gdt
+        dw 0xFFFF               ; limit 0xFFFFF (1 meg? 4 gig?)
+	dw 0			; base for this one is always 0
+	db 0
+	db 0x92			; present,ring 0,data,expand-up,writable
+        db 0xCF                 ; page-granular (4 gig limit), 32-bit
+	db 0
+; code segment descriptor
+SYS_CODE_SEL	equ	$-gdt
+gdt2:	dw 0xFFFF
+	dw 0			; (base gets set above)
+	db 0
+	db 0x9A			; present,ring 0,code,non-conforming,readable
+	db 0xCF
+	db 0
+; data segment descriptor
+SYS_DATA_SEL	equ	$-gdt
+gdt3:	dw 0xFFFF
+	dw 0			; (base gets set above)
+	db 0
+	db 0x92			; present,ring 0,data,expand-up,writable
+	db 0xCF
+	db 0
+gdt_end:
+
+gdt_ptr:
+	dw gdt_end - gdt - 1	; GDT limit
+	dd gdt			; linear, physical address of GDT
+
+;/****************************************************************************
+;       file hello.c
+;****************************************************************************/
+#include <STRING.H> /* movedata() */
+
+#define	LINEAR_SEL	0x08
+#define	SYS_DATA_SEL	0x18
+
+int main(void)
+{
+	const char Msg[] = "h e l l o ";
+
+	movedata(SYS_DATA_SEL, (unsigned)Msg,
+		LINEAR_SEL, 0xB8000,
+		sizeof(Msg));
+	return 0;
+}
+
+;/****************************************************************************
+;	file build.bat
+;*****************************************************************************/
+nasm -f aout -o load.o load.asm
+gcc -c -O2 -Wall -g -o hello.o hello.c
+ld -o pm.com -oformat binary -Ttext=0x100 load.o hello.o /djgpp/lib/libc.a
+
+</PRE>
+      <H3>That's it</H3>E-mail the@womble.co.uk with questions<BR>Or find me and 
+      others at alt.os.development<BR></TR></TBODY></TABLE><P><CENTER><a href="http://os.gtproductions.org">Back to OS Dev</a></CENTER></P></BODY></HTML>
